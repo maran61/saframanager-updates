@@ -1,33 +1,33 @@
-# Etapa 1: Build da aplicação com Node.js
+# Etapa 1: Build da aplicação com Node.js + Git LFS
 FROM node:18-alpine AS builder
 
-# Define o diretório de trabalho dentro do container
+# 1. Instala git e git-lfs no Alpine
+RUN apk add --no-cache git git-lfs
+
+# 2. Define o diretório de trabalho
 WORKDIR /app
 
-# Copia package.json e package-lock.json para instalar dependências
-COPY package.json package-lock.json ./
-
-# Instala as dependências necessárias
-RUN npm install
-
-# Copia todo o restante do código
+# 3. Copia TODO o repositório (incluindo .git, public/files, src, etc.)
+#    Atenção: certifique-se de que .dockerignore NÃO esteja excluindo a pasta .git
 COPY . .
 
-# Executa o build da aplicação (sem rodar o script de atualização de datas)
-# Usamos ‘npx vite build’ diretamente para pular o prebuild que atualizaria as datas.
-RUN npx vite build
+# 4. Inicializa o LFS e baixa de fato os arquivos grandes (APKs, BINs)
+RUN git lfs install \
+ && git lfs pull --include="public/files/**"
+
+# 5. Instala as dependências e executa o build do Vite
+RUN npm install \
+ && npx vite build
 
 # Etapa 2: Servir os arquivos estáticos com NGINX
 FROM nginx:alpine
 
-# Remove a configuração padrão do nginx
+# 6. Limpa a pasta padrão do nginx
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copia o build gerado na etapa anterior para a pasta padrão de conteúdo estático do nginx
+# 7. Copia a pasta dist gerada pelo builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Exponha a porta 80 para servir a aplicação
+# 8. Expõe a porta 80 e inicia o nginx
 EXPOSE 80
-
-# Comando padrão ao iniciar o container
 CMD ["nginx", "-g", "daemon off;"]
