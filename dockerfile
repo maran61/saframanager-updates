@@ -27,7 +27,7 @@ RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Exponha a porta 80 para servir a aplicação
-EXPOSE 5173
+EXPOSE 80
 
 # Comando padrão ao iniciar o container
 CMD ["nginx", "-g", "daemon off;"]
